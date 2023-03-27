@@ -1,0 +1,8 @@
+{
+    "pools": [
+        "Array of any of these pools: 'acUSD-USDC', 'afUSDC-USDC', 'stSOL-2Pool', 'aUSDC-4Pool', 'abBUSD-4Pool', 'aaUSDT-4Pool'",
+        "User should have a position opened in defined pools"
+    ],
+    "walletPrivateKey": "Private key of a wallet that has farming positions opened on meteora.ag",
+    "rpcUrl": "Solana RPC Url"
+}

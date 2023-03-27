@@ -2,14 +2,14 @@
 	"name": "meteora-autocompounder",
 	"version": "0.0.1",
 	"main": "index.js",
-	"description": "App for autocompounding on meteora",
+	"description": "App for autocompounding on meteora.ag",
 	"author": "dmc0125",
 	"type": "module",
 	"scripts": {
 		"build": "tsc",
 		"build:w": "tsc -w",
-		"dev": "nodemon dist/index.js",
-		"start": "node dist/index.js"
+		"start": "node dist/index.js",
+		"dev": "ts-node --esm src/index.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^18.7.18",
@@ -17,9 +17,17 @@
 		"@typescript-eslint/parser": "^5.35.1",
 		"eslint": "^8.22.0",
 		"eslint-config-prettier": "^8.5.0",
-		"nodemon": "^2.0.22",
 		"prettier": "^2.7.1",
+		"ts-node": "^10.9.1",
 		"typescript": "^5.0.2"
 	},
-	"license": "MIT"
+	"license": "MIT",
+	"dependencies": {
+		"@solana/buffer-layout": "^4.0.1",
+		"@solana/buffer-layout-utils": "^0.2.0",
+		"@solana/spl-token": "^0.3.7",
+		"@solana/web3.js": "^1.74.0",
+		"solana-tx-utils": "^0.1.1",
+		"zod": "^3.21.4"
+	}
 }
