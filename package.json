@@ -12,7 +12,7 @@
 		"dev": "ts-node --esm src/index.ts"
 	},
 	"devDependencies": {
-		"@types/node": "^18.7.18",
+		"@types/node": "^18.15.10",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
 		"eslint": "^8.22.0",
@@ -27,6 +27,7 @@
 		"@solana/buffer-layout-utils": "^0.2.0",
 		"@solana/spl-token": "^0.3.7",
 		"@solana/web3.js": "^1.74.0",
+		"node-fetch": "^3.3.1",
 		"solana-tx-utils": "^0.1.1",
 		"zod": "^3.21.4"
 	}
