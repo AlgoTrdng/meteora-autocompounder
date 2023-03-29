@@ -2,7 +2,7 @@ import { getAssociatedTokenAddress, getAssociatedTokenAddressSync } from '@solan
 import { Keypair, TransactionInstruction } from '@solana/web3.js'
 import { setTimeout } from 'node:timers/promises'
 
-import { buildSwapInstruction } from './jupiter.js'
+import { initJupiter, swap } from './jupiter.js'
 import { config } from './config.js'
 import { getUserFarmAccountAddress } from './meteora/state.js'
 import {
@@ -13,11 +13,12 @@ import {
 import { REWARD_A_TOKEN_MINT, pools, StableSwapAmmPoolName } from './meteora/init.js'
 import { getTokenDiffAmount, sendTransaction } from './utils.js'
 import { rewardsCache } from './cache.js'
-import { COMPOUNDING_TIMEOUT, connection } from './global.js'
+import { connection } from './global.js'
 
 const ownerKeyPair = Keypair.fromSecretKey(config.walletPrivateKey)
+const jupiter = await initJupiter(ownerKeyPair, connection)
 
-programLoop(COMPOUNDING_TIMEOUT, async () => {
+programLoop(config.compoundingTimeout * 60 * 60 * 1000, async () => {
 	for (const _poolName of config.pools) {
 		const poolName = _poolName as StableSwapAmmPoolName
 		const poolConfig = pools[poolName]
@@ -51,7 +52,7 @@ programLoop(COMPOUNDING_TIMEOUT, async () => {
 			rewardBAccount: ownerBAccountAddress,
 		})
 		const claimMeta = await sendTransaction(
-			{ type: 'instructions', input: [claimIx], signers: [ownerKeyPair] },
+			{ instructions: [claimIx], signers: [ownerKeyPair] },
 			connection,
 		)
 		if (!claimMeta) {
@@ -67,21 +68,16 @@ programLoop(COMPOUNDING_TIMEOUT, async () => {
 		logMessage(poolName, `Claimed ${rewardTokenDiffAmount}`, 'ok')
 		logMessage(poolName, 'Swapping', 'info')
 
-		const swapMessage = await buildSwapInstruction({
-			inputAmount: rewardTokenDiffAmount + rewardsCache[poolName].unusedReward,
-			inputMintAddress: poolConfig.farm.rewardBMintAddress,
-			outputMintAddress: poolConfig.pool.inputMintAddress,
-			ownerAddress: ownerKeyPair.publicKey,
-		})
-		const swapMeta = await sendTransaction(
+		const swapMeta = await swap(
 			{
-				type: 'messageV0',
-				input: swapMessage.messageV0,
-				addressTableLookups: swapMessage.addressTableLookups,
-				signers: [ownerKeyPair],
+				inputAmount: rewardTokenDiffAmount + rewardsCache[poolName].unusedReward,
+				inputMintAddress: poolConfig.farm.rewardBMintAddress,
+				outputMintAddress: poolConfig.pool.inputMintAddress,
 			},
+			jupiter,
 			connection,
 		)
+
 		if (!swapMeta) {
 			logMessage(poolName, 'Swap failed', 'err')
 			rewardsCache[poolName].unusedReward += rewardTokenDiffAmount
@@ -129,7 +125,7 @@ programLoop(COMPOUNDING_TIMEOUT, async () => {
 			)
 		}
 		const depositLiquidityRes = await sendTransaction(
-			{ input: [depositLiquidityIx!], type: 'instructions', signers: [ownerKeyPair] },
+			{ instructions: [depositLiquidityIx!], signers: [ownerKeyPair] },
 			connection,
 		)
 		if (!depositLiquidityRes) {
@@ -160,7 +156,7 @@ programLoop(COMPOUNDING_TIMEOUT, async () => {
 			lpTokenDiffAmount + rewardsCache[poolName].unusedLP,
 		)
 		const depositToFarmRes = await sendTransaction(
-			{ input: [depositToFarmIx], type: 'instructions', signers: [ownerKeyPair] },
+			{ instructions: [depositToFarmIx], signers: [ownerKeyPair] },
 			connection,
 		)
 

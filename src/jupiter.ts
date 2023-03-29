@@ -1,83 +1,80 @@
+import { Connection, Keypair, PublicKey } from '@solana/web3.js'
+import { Jupiter } from '@jup-ag/core'
+
+import JSBI from 'jsbi'
 import {
-	AddressLookupTableAccount,
-	PublicKey,
-	TransactionMessage,
-	VersionedTransaction,
-} from '@solana/web3.js'
-import fetch from 'node-fetch'
+	confirmTransaction,
+	TxErrorResponse,
+	TxSuccessResponse,
+	TxUnconfirmedResponse,
+} from 'solana-tx-utils'
 
-import { connection } from './global.js'
-
-const QUOTE_URL = 'https://quote-api.jup.ag/v4/quote?slippageBps=100'
-const IX_URL = 'https://quote-api.jup.ag/v4/swap'
-
-type Route = {
-	inAmount: string
-	outAmount: string
-	priceImpactPct: number
-	amount: string
-	slippageBps: number
-	otherAmountThreshold: string
-	swapMode: 'ExactIn' | 'ExactOut'
+export async function initJupiter(onwerKeyPair: Keypair, connection: Connection) {
+	const jupiter = await Jupiter.load({
+		connection,
+		cluster: 'mainnet-beta',
+		wrapUnwrapSOL: false,
+		user: onwerKeyPair,
+		routeCacheDuration: 10_000,
+	})
+	return jupiter
 }
-
-type QuoteRes = {
-	data: Route[]
-}
-
-type IxRes = { swapTransaction: string }
 
 export type SwapInstructionParams = {
 	inputAmount: bigint
 	inputMintAddress: PublicKey
 	outputMintAddress: PublicKey
-	ownerAddress: PublicKey
 }
 
-export async function buildSwapInstruction({
-	inputAmount,
-	inputMintAddress,
-	outputMintAddress,
-	ownerAddress,
-}: SwapInstructionParams) {
-	const urlParams = new URLSearchParams({
-		amount: inputAmount.toString(),
-		inputMint: inputMintAddress.toString(),
-		outputMint: outputMintAddress.toString(),
-	})
-	const { data: routes } = (await (
-		await fetch(`${QUOTE_URL}&${urlParams.toString()}`)
-	).json()) as QuoteRes
-	const { swapTransaction } = (await (
-		await fetch(IX_URL, {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/json',
-			},
-			body: JSON.stringify({
-				route: routes[0],
-				userPublicKey: ownerAddress.toString(),
-				wrapUnwrapSOL: false,
-			}),
+export async function swap(
+	{ inputAmount, inputMintAddress, outputMintAddress }: SwapInstructionParams,
+	jupiter: Jupiter,
+	connection: Connection,
+) {
+	const buildTx = async () => {
+		const routes = await jupiter.computeRoutes({
+			inputMint: inputMintAddress,
+			outputMint: outputMintAddress,
+			amount: JSBI.BigInt(inputAmount.toString()),
+			slippageBps: 100,
 		})
-	).json()) as IxRes
-
-	const tx = VersionedTransaction.deserialize(Buffer.from(swapTransaction, 'base64'))
-	const atlsAddresses = tx.message.addressTableLookups.map(({ accountKey }) => accountKey)
-	const atlsAis = await connection.getMultipleAccountsInfo(atlsAddresses)
-	const atls = atlsAis.map((ai, i) => {
-		if (!ai?.data) {
-			throw Error('Could not load address lookup table')
+		const { lastValidBlockHeight, blockhash } = await connection.getLatestBlockhash()
+		const { execute } = await jupiter.exchange({
+			routeInfo: routes.routesInfos[0],
+			blockhashWithExpiryBlockHeight: { lastValidBlockHeight, blockhash },
+		})
+		return {
+			execute,
+			lastValidBlockHeight,
 		}
-		return new AddressLookupTableAccount({
-			key: atlsAddresses[i],
-			state: AddressLookupTableAccount.deserialize(ai.data),
-		})
-	})
-	return {
-		messageV0: TransactionMessage.decompile(tx.message, {
-			addressLookupTableAccounts: atls,
-		}).compileToV0Message(),
-		addressTableLookups: atls,
+	}
+
+	let txData = await buildTx()
+
+	while (true) {
+		const tryExecTxRes: TxSuccessResponse | TxErrorResponse | TxUnconfirmedResponse =
+			await new Promise((resolve) => {
+				txData.execute({
+					onTransaction: async (txId) => {
+						const res = await confirmTransaction({
+							txId,
+							connection,
+							lastValidBlockHeight: txData.lastValidBlockHeight,
+						})
+						resolve(res)
+					},
+				})
+			})
+
+		switch (tryExecTxRes.status) {
+			case 'SUCCESS': {
+				return tryExecTxRes.data
+			}
+			case 'ERROR':
+				return null
+			case 'BLOCK_HEIGHT_EXCEEDED': {
+				txData = await buildTx()
+			}
+		}
 	}
 }

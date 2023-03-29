@@ -1,35 +1,29 @@
 import {
-	AddressLookupTableAccount,
 	ConfirmedTransactionMeta,
 	Connection,
-	MessageV0,
 	PublicKey,
 	Signer,
 	TokenBalance,
 	TransactionInstruction,
 } from '@solana/web3.js'
-import {
-	buildAndSignTxFromInstructions,
-	buildAndSignTxFromMessageV0,
-	sendAndConfirmTransaction,
-} from 'solana-tx-utils'
+import { buildAndSignTxFromInstructions, sendAndConfirmTransaction } from 'solana-tx-utils'
 
-export type TransactionInput = (
-	| {
-			type: 'messageV0'
-			input: MessageV0
-	  }
-	| {
-			type: 'instructions'
-			input: TransactionInstruction[]
-	  }
-) & {
+export type TransactionInput = {
+	instructions: TransactionInstruction[]
 	signers: Signer[]
-	addressTableLookups?: AddressLookupTableAccount[]
 }
 
-export async function sendTransaction(input: TransactionInput, connection: Connection) {
-	let txData = await buildTxData(input, connection)
+export async function sendTransaction(
+	{ instructions, signers }: TransactionInput,
+	connection: Connection,
+) {
+	let txData = await buildAndSignTxFromInstructions(
+		{
+			instructions,
+			signers,
+		},
+		connection,
+	)
 
 	while (true) {
 		const res = await sendAndConfirmTransaction({
@@ -40,39 +34,22 @@ export async function sendTransaction(input: TransactionInput, connection: Conne
 			case 'SUCCESS': {
 				return res.data
 			}
-			case 'BLOCK_HEIGHT_EXCEEDED': {
-				txData = await buildTxData(input, connection)
-			}
 			case 'ERROR': {
 				console.error(`Transaction with ID: ${res.txId} failed with error: ${res.error}`)
 				console.log(res)
 				return null
 			}
+			case 'BLOCK_HEIGHT_EXCEEDED': {
+				txData = await buildAndSignTxFromInstructions(
+					{
+						instructions,
+						signers,
+					},
+					connection,
+				)
+			}
 		}
 	}
-}
-
-function buildTxData(
-	{ type, input, signers, addressTableLookups }: TransactionInput,
-	connection: Connection,
-) {
-	if (type === 'instructions') {
-		return buildAndSignTxFromInstructions(
-			{
-				instructions: input,
-				addressLookupTables: addressTableLookups,
-				signers,
-			},
-			connection,
-		)
-	}
-	return buildAndSignTxFromMessageV0(
-		{
-			message: input,
-			signers,
-		},
-		connection,
-	)
 }
 
 export function getTokenDiffAmount(

@@ -4,5 +4,6 @@
         "User should have a position opened in defined pools"
     ],
     "walletPrivateKey": "Private key of a wallet that has farming positions opened on meteora.ag",
-    "rpcUrl": "Solana RPC Url"
+    "rpcUrl": "Solana RPC Url",
+    "compoundingTimeout": "Hours to wait between every compounding cycle"
 }

@@ -11,6 +11,7 @@ const configLayout = z.object({
 		.transform((pkString) => new Uint8Array(pkString.split(',').map((x) => Number(x)))),
 	pools: z.array(z.string()),
 	rpcUrl: z.string().url(),
+	compoundingTimeout: z.number().gte(1),
 })
 
 const configPath = path.join(__dirname, '../config.json')
