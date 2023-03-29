@@ -12,7 +12,8 @@ import {
 const namespaces = {
 	claim: createHash('claim'),
 	deposit: createHash('deposit'),
-	dynamicVaultDeposit: createHash('addImbalanceLiquidity'),
+	dynamicVaultDeposit: Buffer.from('4f237a54ad0f5dbf', 'hex'),
+	syncApy: Buffer.from('9283d496ceeb8186', 'hex'),
 }
 
 function createHash(name: string) {
@@ -93,20 +94,63 @@ export function buildClaimInstruction({
 	})
 }
 
-export type DepositToDynamicAmmInstructionAccounts = {
+export type SyncApyInstructionAccounts = {
 	pool: PublicKey
-	lpMint: PublicKey
-	userPoolLp: PublicKey
-	aVaultLp: PublicKey
-	bVaultLp: PublicKey
+	poolTokenMint: PublicKey
+	aVaultPool: PublicKey
+	bVaultPool: PublicKey
 	aVault: PublicKey
 	bVault: PublicKey
-	aVaultLpMint: PublicKey
-	bVaultLpMint: PublicKey
+	aVaultPoolMint: PublicKey
+	bVaultPoolMint: PublicKey
+	apy: PublicKey
+}
+
+export function buildSyncApyInstruction({
+	pool,
+	poolTokenMint,
+	aVaultPool,
+	bVaultPool,
+	aVault,
+	bVault,
+	aVaultPoolMint,
+	bVaultPoolMint,
+	apy,
+}: SyncApyInstructionAccounts) {
+	const namespace = namespaces.syncApy
+	const accounts = [
+		accountMeta(pool, true),
+		accountMeta(poolTokenMint),
+		accountMeta(aVaultPool),
+		accountMeta(bVaultPool),
+		accountMeta(aVault),
+		accountMeta(bVault),
+		accountMeta(aVaultPoolMint),
+		accountMeta(bVaultPoolMint),
+		accountMeta(apy, true),
+	]
+
+	return new TransactionInstruction({
+		programId: DYNAMIC_AMM_PROGRAM_ADDRESS,
+		keys: accounts,
+		data: namespace,
+	})
+}
+
+export type DepositToDynamicAmmInstructionAccounts = {
+	pool: PublicKey
+	poolTokenMint: PublicKey
+	userPoolTokenAccount: PublicKey
+	aVaultPool: PublicKey
+	bVaultPool: PublicKey
+	aVault: PublicKey
+	bVault: PublicKey
+	aVaultPoolMint: PublicKey
+	bVaultPoolMint: PublicKey
 	aTokenVault: PublicKey
 	bTokenVault: PublicKey
-	userAToken: PublicKey
-	userBToken: PublicKey
+	userATokenAccount: PublicKey
+	userBTokenAccount: PublicKey
 	user: PublicKey
 }
 
@@ -119,18 +163,18 @@ export type DepositToDynamicAmmInstructionArgs = {
 export function buildDepositToDynamicAmmInstruction(
 	{
 		pool,
-		lpMint,
-		userPoolLp,
-		aVaultLp,
-		bVaultLp,
+		poolTokenMint,
+		userPoolTokenAccount,
+		aVaultPool,
+		bVaultPool,
 		aVault,
 		bVault,
-		aVaultLpMint,
-		bVaultLpMint,
+		aVaultPoolMint,
+		bVaultPoolMint,
 		aTokenVault,
 		bTokenVault,
-		userAToken,
-		userBToken,
+		userATokenAccount,
+		userBTokenAccount,
 		user,
 	}: DepositToDynamicAmmInstructionAccounts,
 	{ minimumPoolTokenAmount, tokenAAmount, tokenBAmount }: DepositToDynamicAmmInstructionArgs,
@@ -143,18 +187,18 @@ export function buildDepositToDynamicAmmInstruction(
 
 	const accounts = [
 		accountMeta(pool, true),
-		accountMeta(lpMint, true),
-		accountMeta(userPoolLp, true),
-		accountMeta(aVaultLp, true),
-		accountMeta(bVaultLp, true),
+		accountMeta(poolTokenMint, true),
+		accountMeta(userPoolTokenAccount, true),
+		accountMeta(aVaultPool, true),
+		accountMeta(bVaultPool, true),
 		accountMeta(aVault, true),
 		accountMeta(bVault, true),
-		accountMeta(aVaultLpMint, true),
-		accountMeta(bVaultLpMint, true),
+		accountMeta(aVaultPoolMint, true),
+		accountMeta(bVaultPoolMint, true),
 		accountMeta(aTokenVault, true),
 		accountMeta(bTokenVault, true),
-		accountMeta(userAToken, true),
-		accountMeta(userBToken, true),
+		accountMeta(userATokenAccount, true),
+		accountMeta(userBTokenAccount, true),
 		accountMeta(user, false, true),
 		accountMeta(VAULT_PROGRAM_ADDRESS),
 		accountMeta(TOKEN_PROGRAM_ID),
@@ -181,9 +225,6 @@ export type DepositToStableSwapAmmInstructionArgs = {
 	depositAmount: bigint[] // 4 * u64 => 4 * 8
 	minMintAmount: bigint // u64 => 8
 }
-
-// 0104      000000000000000000000000000000000000000000000000c200000000000000b800000000000000
-// 010400000000000000000000000000000000000000000000000000000040420f00000000002777f43a00000000
 
 export function buildDepositToStableSwapAmmInstruction(
 	{

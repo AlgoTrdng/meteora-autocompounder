@@ -42,6 +42,23 @@ export type StableSwapPoolConfig = {
 	tokenMintAddresses: PublicKey[]
 }
 
+export type DynamicPoolConfig = {
+	address: PublicKey
+	inputMintAddress: PublicKey
+	poolTokenMintAddress: PublicKey
+	aTokenMint: PublicKey
+	bTokenMint: PublicKey
+	aVaultAuthorityAddress: PublicKey
+	bVaultAuthorityAddress: PublicKey
+	aPoolTokenVaultAddress: PublicKey
+	bPoolTokenVaultAddress: PublicKey
+	aPoolTokenMintAddress: PublicKey
+	bPoolTokenMintAddress: PublicKey
+	aVaultAddress: PublicKey
+	bVaultAddress: PublicKey
+	apyAddress: PublicKey
+}
+
 export type FarmPoolConfig = {
 	address: PublicKey
 	rewardBMintAddress: PublicKey
@@ -59,6 +76,7 @@ export type StableSwapAmmConfig = {
 export type DynamicAmmConfig = {
 	type: 'dynamicAmm'
 	farm: FarmPoolConfig
+	pool: DynamicPoolConfig
 }
 
 export type StableSwapAmmPoolName = 'stSOL-2Pool' | 'abBUSD-4Pool' | 'aUSDC-4Pool' | 'aaUSDT-4Pool'
@@ -108,6 +126,49 @@ const farmConfigs: Record<PoolName, FarmPoolConfig> = {
 		rewardAVaultAddress: new PublicKey('GGPEvdnWEoMMJ2AAx4TBDPw4oLxgEnBc1dgS1eMYWeCn'),
 		rewardBVaultAddress: new PublicKey('G98SNCwFUfHUBGNsx9r4ssPtfmbztGdzqDnwFbabJAVm'),
 		stakingVaultAddress: getStakingVaultAddress(stSol2FarmAddress),
+	},
+}
+
+const dynamicPools: Record<DynamicAmmPoolName, DynamicAmmConfig> = {
+	'afUSDC-USDC': {
+		type: 'dynamicAmm',
+		farm: farmConfigs['afUSDC-USDC'],
+		pool: {
+			address: new PublicKey('Gyv8znLzPb44XatDar8ebx1zG6VvvuPHtaJP8MdCjNoQ'),
+			inputMintAddress: USDC_MINT_ADDRESS,
+			poolTokenMintAddress: new PublicKey('FmQSveFkR6Z2hbkA5WDNwLdo4xdsS1C8gR5bCu8Zpdsu'),
+			aPoolTokenVaultAddress: new PublicKey('4LuoNhR7VCSpxDoL65s4WEBozeP4YEHA7FQ7ZZ2XbHTo'),
+			bPoolTokenVaultAddress: new PublicKey('6ZXJG5HuynJPd7gvaySRjBRBdoBGAdjCdPZcb6N5PKba'),
+			aPoolTokenMintAddress: new PublicKey('3RpEekjLE5cdcG15YcXJUpxSepemvq2FpmMcgo342BwC'),
+			bPoolTokenMintAddress: new PublicKey('4da9saTYgDs37wRSuS8mnFoiWzSYeRtvSWaFRe8rtkFc'),
+			aVaultAuthorityAddress: new PublicKey('3ESUFCnRNgZ7Mn2mPPUMmXYaKU8jpnV9VtA17M7t2mHQ'),
+			bVaultAuthorityAddress: new PublicKey('GGQfASSnFaqPu83jWrL1DMJBJEzG3rdwsDARDGt6Gxmj'),
+			aVaultAddress: new PublicKey('C2QoQ111jGHEy5918XkNXQro7gGwC9PKLXd1LqBiYNwA'),
+			bVaultAddress: new PublicKey('CuUPVxRvyX3XeQ91K6TyhudJ7frAAd6i5Xrn2pqnKYXP'),
+			aTokenMint: USDC_MINT_ADDRESS,
+			bTokenMint: new PublicKey('Grk6b4UMRWkgyq4Y6S1BnNRF4hRgtnMFp7Sorkv6Ez4u'),
+			apyAddress: new PublicKey('Ehcr2w1cA6Fxu8mHtnr3xPNqY7ZFWbfejdEfGyLXD5tu'),
+		},
+	},
+	'acUSD-USDC': {
+		type: 'dynamicAmm',
+		farm: farmConfigs['acUSD-USDC'],
+		pool: {
+			address: new PublicKey('6ZLKLjMd2KzH7PPHCXUPgbMAtdTT37VgTtdeXWLoJppr'),
+			inputMintAddress: USDC_MINT_ADDRESS,
+			poolTokenMintAddress: new PublicKey('3mtMyBrCf48tJ1XmMnoYZgQqqn6VNEYAfKHzGZnfAZPt'),
+			aPoolTokenVaultAddress: new PublicKey('DCo3JFb2KzWJEMjx7QMHYqATdNYob6FPXbNN3s6rFCB6'),
+			bPoolTokenVaultAddress: new PublicKey('CxqZGouGyMkm7aTwyUNrSipKEFYbH3vaGhuib7CzAW9J'),
+			aPoolTokenMintAddress: new PublicKey('3RpEekjLE5cdcG15YcXJUpxSepemvq2FpmMcgo342BwC'),
+			bPoolTokenMintAddress: new PublicKey('5CuhvouXVx6t5XPiyhRkrfgK5omAf8XnqY1ef6CLjw7o'),
+			aVaultAuthorityAddress: new PublicKey('3ESUFCnRNgZ7Mn2mPPUMmXYaKU8jpnV9VtA17M7t2mHQ'),
+			bVaultAuthorityAddress: new PublicKey('BFJP6RYDxJa4FmFtBpPDYcrPozjC98CELrXqVL7rGMVW'),
+			aVaultAddress: new PublicKey('C2QoQ111jGHEy5918XkNXQro7gGwC9PKLXd1LqBiYNwA'),
+			bVaultAddress: new PublicKey('GZHHAw9LZyHn58zHZHzwVMmgJcdJpSzQJfRjiW1neSCZ'),
+			aTokenMint: USDC_MINT_ADDRESS,
+			bTokenMint: new PublicKey('EwxNF8g9UfmsJVcZFTpL9Hx5MCkoQFoJi6XNWzKf1j8e'),
+			apyAddress: new PublicKey('GVVHdPnj9BUaKjSoM9ANP1MoZoHuHx3SaWkF3i5r2fYM'),
+		},
 	},
 }
 
@@ -188,6 +249,7 @@ Object.keys(stableSwapPools).forEach((poolName, i) => {
 
 export const pools = {
 	...stableSwapPools,
+	...dynamicPools,
 }
 
 function getStakingVaultAddress(poolAddress: PublicKey) {

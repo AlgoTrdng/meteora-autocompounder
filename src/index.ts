@@ -1,5 +1,5 @@
 import { getAssociatedTokenAddress, getAssociatedTokenAddressSync } from '@solana/spl-token'
-import { Keypair, TransactionInstruction } from '@solana/web3.js'
+import { Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js'
 import { setTimeout } from 'node:timers/promises'
 
 import { initJupiter, swap } from './jupiter.js'
@@ -7,10 +7,17 @@ import { config } from './config.js'
 import { getUserFarmAccountAddress } from './meteora/state.js'
 import {
 	buildClaimInstruction,
+	buildDepositToDynamicAmmInstruction,
 	buildDepositToFarmInstruction,
 	buildDepositToStableSwapAmmInstruction,
+	buildSyncApyInstruction,
 } from './meteora/instructions.js'
-import { REWARD_A_TOKEN_MINT, pools, StableSwapAmmPoolName } from './meteora/init.js'
+import {
+	REWARD_A_TOKEN_MINT,
+	pools,
+	StableSwapAmmPoolName,
+	DynamicAmmConfig,
+} from './meteora/init.js'
 import { getTokenDiffAmount, sendTransaction } from './utils.js'
 import { rewardsCache } from './cache.js'
 import { connection } from './global.js'
@@ -99,7 +106,7 @@ programLoop(config.compoundingTimeout * 60 * 60 * 1000, async () => {
 			ownerKeyPair.publicKey,
 		)
 
-		let depositLiquidityIx: TransactionInstruction
+		const depositLiquidityIxs: TransactionInstruction[] = []
 		if (poolConfig.type === 'stableSwapPool') {
 			const depositToLpAmount = rewardsCache[poolName].unusedInput + inputTokenDiffAmount
 			const ownerTokenAccountsAddresses = await Promise.all(
@@ -108,24 +115,81 @@ programLoop(config.compoundingTimeout * 60 * 60 * 1000, async () => {
 				),
 			)
 
-			depositLiquidityIx = buildDepositToStableSwapAmmInstruction(
-				{
-					liquidityPool: poolConfig.pool.address,
-					poolAuthority: poolConfig.pool.authorityAddress,
-					owner: ownerKeyPair.publicKey,
-					liquidityPoolTokenAccounts: poolConfig.pool.tokenAccountsAddresses,
-					poolTokenMint: poolConfig.pool.poolTokenMintAddress,
-					ownerLPTokenAccount: ownerLPTokenAccountAddress,
-					ownerTokenAccounts: ownerTokenAccountsAddresses,
-				},
-				{
-					depositAmount: [0n, 0n, 0n, depositToLpAmount],
-					minMintAmount: (depositToLpAmount * 95n) / 100n, // 5% slippage
-				},
+			depositLiquidityIxs.push(
+				buildDepositToStableSwapAmmInstruction(
+					{
+						liquidityPool: poolConfig.pool.address,
+						poolAuthority: poolConfig.pool.authorityAddress,
+						owner: ownerKeyPair.publicKey,
+						liquidityPoolTokenAccounts: poolConfig.pool.tokenAccountsAddresses,
+						poolTokenMint: poolConfig.pool.poolTokenMintAddress,
+						ownerLPTokenAccount: ownerLPTokenAccountAddress,
+						ownerTokenAccounts: ownerTokenAccountsAddresses,
+					},
+					{
+						depositAmount: [0n, 0n, 0n, depositToLpAmount],
+						minMintAmount: (depositToLpAmount * 95n) / 100n, // 5% slippage
+					},
+				),
+			)
+		} else {
+			const depositAmount = rewardsCache[poolName].unusedInput + inputTokenDiffAmount
+			// For some reason typescript does not infer this type
+			const pc = poolConfig as unknown as DynamicAmmConfig
+
+			const userATokenAccount = getAssociatedTokenAddressSync(
+				pc.pool.aTokenMint,
+				ownerKeyPair.publicKey,
+			)
+			const userBTokenAccount = getAssociatedTokenAddressSync(
+				pc.pool.bTokenMint,
+				ownerKeyPair.publicKey,
+			)
+			const userPoolTokenAccount = getAssociatedTokenAddressSync(
+				pc.pool.poolTokenMintAddress,
+				ownerKeyPair.publicKey,
+			)
+
+			depositLiquidityIxs.push(
+				buildSyncApyInstruction({
+					pool: pc.pool.address,
+					poolTokenMint: pc.pool.poolTokenMintAddress,
+					aVaultPool: pc.pool.aPoolTokenVaultAddress,
+					bVaultPool: pc.pool.bPoolTokenVaultAddress,
+					aVault: pc.pool.aVaultAuthorityAddress,
+					bVault: pc.pool.bVaultAuthorityAddress,
+					aVaultPoolMint: pc.pool.aPoolTokenMintAddress,
+					bVaultPoolMint: pc.pool.bPoolTokenMintAddress,
+					apy: pc.pool.apyAddress,
+				}),
+				buildDepositToDynamicAmmInstruction(
+					{
+						pool: pc.pool.address,
+						poolTokenMint: pc.pool.poolTokenMintAddress,
+						aVaultPool: pc.pool.aPoolTokenVaultAddress,
+						bVaultPool: pc.pool.bPoolTokenVaultAddress,
+						aVault: pc.pool.aVaultAuthorityAddress,
+						bVault: pc.pool.bVaultAuthorityAddress,
+						aVaultPoolMint: pc.pool.aPoolTokenMintAddress,
+						bVaultPoolMint: pc.pool.bPoolTokenMintAddress,
+						aTokenVault: pc.pool.aVaultAddress,
+						bTokenVault: pc.pool.bVaultAddress,
+						user: ownerKeyPair.publicKey,
+						userPoolTokenAccount,
+						userATokenAccount,
+						userBTokenAccount,
+					},
+					{
+						minimumPoolTokenAmount: (depositAmount * 95n) / 100n,
+						tokenAAmount: depositAmount,
+						tokenBAmount: 0n,
+					},
+				),
 			)
 		}
+
 		const depositLiquidityRes = await sendTransaction(
-			{ instructions: [depositLiquidityIx!], signers: [ownerKeyPair] },
+			{ instructions: depositLiquidityIxs, signers: [ownerKeyPair] },
 			connection,
 		)
 		if (!depositLiquidityRes) {
