@@ -10,6 +10,10 @@
 		"moduleResolution": "node",
 
 		"outDir": "./dist",
-		"rootDir": "./src"
-	}
+		"rootDir": "./src",
+		"paths": {
+			"@solana/spl-token": ["./node_modules/@solana/spl-token"]
+		  }
+	},
+	
 }
