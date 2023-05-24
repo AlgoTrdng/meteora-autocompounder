@@ -1,5 +1,5 @@
 import { getAssociatedTokenAddress, getAssociatedTokenAddressSync } from '@solana/spl-token'
-import { Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js'
+import { Keypair, TransactionInstruction } from '@solana/web3.js'
 import { setTimeout } from 'node:timers/promises'
 
 import { initJupiter, swap } from './jupiter.js'
@@ -10,7 +10,6 @@ import {
 	buildDepositToDynamicAmmInstruction,
 	buildDepositToFarmInstruction,
 	buildDepositToStableSwapAmmInstruction,
-	buildSyncApyInstruction,
 } from './meteora/instructions.js'
 import {
 	REWARD_A_TOKEN_MINT,
@@ -151,17 +150,6 @@ programLoop(config.compoundingTimeout * 60 * 60 * 1000, async () => {
 			)
 
 			depositLiquidityIxs.push(
-				buildSyncApyInstruction({
-					pool: pc.pool.address,
-					poolTokenMint: pc.pool.poolTokenMintAddress,
-					aVaultPool: pc.pool.aPoolTokenVaultAddress,
-					bVaultPool: pc.pool.bPoolTokenVaultAddress,
-					aVault: pc.pool.aVaultAuthorityAddress,
-					bVault: pc.pool.bVaultAuthorityAddress,
-					aVaultPoolMint: pc.pool.aPoolTokenMintAddress,
-					bVaultPoolMint: pc.pool.bPoolTokenMintAddress,
-					apy: pc.pool.apyAddress,
-				}),
 				buildDepositToDynamicAmmInstruction(
 					{
 						pool: pc.pool.address,

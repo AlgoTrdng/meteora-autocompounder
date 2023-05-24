@@ -106,37 +106,6 @@ export type SyncApyInstructionAccounts = {
 	apy: PublicKey
 }
 
-export function buildSyncApyInstruction({
-	pool,
-	poolTokenMint,
-	aVaultPool,
-	bVaultPool,
-	aVault,
-	bVault,
-	aVaultPoolMint,
-	bVaultPoolMint,
-	apy,
-}: SyncApyInstructionAccounts) {
-	const namespace = namespaces.syncApy
-	const accounts = [
-		accountMeta(pool, true),
-		accountMeta(poolTokenMint),
-		accountMeta(aVaultPool),
-		accountMeta(bVaultPool),
-		accountMeta(aVault),
-		accountMeta(bVault),
-		accountMeta(aVaultPoolMint),
-		accountMeta(bVaultPoolMint),
-		accountMeta(apy, true),
-	]
-
-	return new TransactionInstruction({
-		programId: DYNAMIC_AMM_PROGRAM_ADDRESS,
-		keys: accounts,
-		data: namespace,
-	})
-}
-
 export type DepositToDynamicAmmInstructionAccounts = {
 	pool: PublicKey
 	poolTokenMint: PublicKey

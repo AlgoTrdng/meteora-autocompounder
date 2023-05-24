@@ -56,7 +56,6 @@ export type DynamicPoolConfig = {
 	bPoolTokenMintAddress: PublicKey
 	aVaultAddress: PublicKey
 	bVaultAddress: PublicKey
-	apyAddress: PublicKey
 }
 
 export type FarmPoolConfig = {
@@ -147,7 +146,6 @@ const dynamicPools: Record<DynamicAmmPoolName, DynamicAmmConfig> = {
 			bVaultAddress: new PublicKey('CuUPVxRvyX3XeQ91K6TyhudJ7frAAd6i5Xrn2pqnKYXP'),
 			aTokenMint: USDC_MINT_ADDRESS,
 			bTokenMint: new PublicKey('Grk6b4UMRWkgyq4Y6S1BnNRF4hRgtnMFp7Sorkv6Ez4u'),
-			apyAddress: new PublicKey('Ehcr2w1cA6Fxu8mHtnr3xPNqY7ZFWbfejdEfGyLXD5tu'),
 		},
 	},
 	'acUSD-USDC': {
@@ -167,7 +165,6 @@ const dynamicPools: Record<DynamicAmmPoolName, DynamicAmmConfig> = {
 			bVaultAddress: new PublicKey('GZHHAw9LZyHn58zHZHzwVMmgJcdJpSzQJfRjiW1neSCZ'),
 			aTokenMint: USDC_MINT_ADDRESS,
 			bTokenMint: new PublicKey('EwxNF8g9UfmsJVcZFTpL9Hx5MCkoQFoJi6XNWzKf1j8e'),
-			apyAddress: new PublicKey('GVVHdPnj9BUaKjSoM9ANP1MoZoHuHx3SaWkF3i5r2fYM'),
 		},
 	},
 }
