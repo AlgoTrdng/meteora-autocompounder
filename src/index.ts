@@ -168,6 +168,10 @@ programLoop(config.compoundingTimeout * 60 * 60 * 1000, async () => {
 						userBTokenAccount,
 					},
 					{
+						// Could not find how to get/calculate pool virtual price
+						// in docs or in the source code
+						// So deposit amount is just 95% of tokenA, which may cause
+						// issues with some pools
 						minimumPoolTokenAmount: (depositAmount * 95n) / 100n,
 						tokenAAmount: depositAmount,
 						tokenBAmount: 0n,
