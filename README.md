@@ -1,3 +1,9 @@
+
+# Disclaimer
+## Important:
+
+This software is provided for testing and educational purposes only. Utilizing this software as provided may result in financial loss. The creator(s) of this software bear no responsibility for any financial or other damages incurred.
+
 # Meteora Autocompounder Bot
 
 - This is a bot that collects rewards earned in specified pools on [Meteora](https://meteora.ag) based on specified time interval
